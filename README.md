@@ -1,26 +1,18 @@
 ## 3d-constructor
 
-
-
-build:
+BUILD:
 
 `$ cc -o 3d 3d.c -lm`
 
-
-
-usage:
+USAGE:
 
 `$ ./3d [<width> <height>]`
 
-
-
-commong controls:
+COMMON CONTROLS:
 
 `V` - cycle views
 
-
-
-2d controls:
+2D CONTROLS:
 
 `S F D E` - move left/right/down/up
 
@@ -32,8 +24,6 @@ commong controls:
 
 `J L K I` - move the vertex left/right/down/up
 
-
-
-3d controls:
+3D CONTROLS:
 
 `S F D E` - rotate cw-around-z/ccw-around-z/cw-around-x/ccw-around-x
