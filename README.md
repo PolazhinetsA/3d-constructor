@@ -12,6 +12,10 @@ COMMON CONTROLS:
 
 `V` - cycle views
 
+`+ -` - closer/farther
+
+`W R` - write to file, read from file
+
 2D CONTROLS:
 
 `S F D E` - move left/right/down/up
