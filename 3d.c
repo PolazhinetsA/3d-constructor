@@ -84,11 +84,11 @@ void mainloop()
         {
         case 'V': case 'v': view = (view + 1) % 4; break;
 
-        case 'W': case 'w': if (adding == 2) save(); break;
-        case 'R': case 'r': if (adding == 2) load(); break;
-
         case '-': case '_': far += 10.0; break;
         case '=': case '+': far -= 10.0; break;
+
+        case 'W': case 'w': if (adding == 2) save(); break;
+        case 'R': case 'r': if (adding == 2) load(); break;
 
         default: if (view == _3D)
         {
