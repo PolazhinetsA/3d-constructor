@@ -8,7 +8,6 @@ enum { TOP, FRONT, SIDE, _3D };
 enum { LEFT, RIGHT, DOWN, UP };
 enum { X, Y, Z };
 enum { A, B };
-enum { OFF, ON };
 
 #define UNIFORM { { 1, 0, 0}, \
                   { 0, 1, 0}, \

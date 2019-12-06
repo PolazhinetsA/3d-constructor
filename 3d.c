@@ -9,7 +9,7 @@
 char *screen;
 int wid, hei, widhei;
 
-void tmode_switch(int);
+void tmode_switch();
 
 void mainloop();
 
@@ -26,9 +26,9 @@ int main(int argc, char **argv)
     widhei = wid*hei;
     screen = malloc(widhei);
 
-    tmode_switch(ON);
+    tmode_switch();
     mainloop();
-    tmode_switch(OFF);
+    tmode_switch();
 
     return 0;
 }
@@ -278,20 +278,21 @@ void erase()
     for (int y = 1; y <= hei; ++y) screen[y*wid-1] = '\n';
 }
 
-void tmode_switch(int on_off)
+void tmode_switch()
 {
+    static int current = 0;
+
     static struct termios tmode_old, tmode_new;
 
-    switch (on_off) {
-    case ON:
+    if (!current) {
         tcgetattr(STDIN_FILENO, &tmode_old);
         tmode_new = tmode_old;
         tmode_new.c_lflag &= ~(ICANON);
         tmode_new.c_lflag &= ~(ECHO);
         tcsetattr(STDIN_FILENO, TCSANOW, &tmode_new);
-        break;
-    case OFF:
+        current = 1;
+    } else {
         tcsetattr(STDIN_FILENO, TCSANOW, &tmode_old);
-        break;
+        current = 0;
     }
 }
