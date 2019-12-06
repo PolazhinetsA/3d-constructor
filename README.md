@@ -1,10 +1,10 @@
 ## 3d-constructor
 
-BUILD:
+COMPILE:
 
 `$ cc -o 3d 3d.c -lm`
 
-USAGE:
+RUN:
 
 `$ ./3d [<width> <height>]`
 
