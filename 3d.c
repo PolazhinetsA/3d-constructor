@@ -33,20 +33,20 @@ int main(int argc, char **argv)
     return 0;
 }
 
-const double shift[4][4][3] = { { {-1, 0, 0},
-                                  { 1, 0, 0},
-                                  { 0,-1, 0},
-                                  { 0, 1, 0} },
+const double move[4][4][3] = { { {-1, 0, 0},
+                                 { 1, 0, 0},
+                                 { 0,-1, 0},
+                                 { 0, 1, 0} },
 
-                                { {-1, 0, 0},
-                                  { 1, 0, 0},
-                                  { 0, 0,-1},
-                                  { 0, 0, 1} },
+                               { {-1, 0, 0},
+                                 { 1, 0, 0},
+                                 { 0, 0,-1},
+                                 { 0, 0, 1} },
 
-                                { { 0,-1, 0},
-                                  { 0, 1, 0},
-                                  { 0, 0,-1},
-                                  { 0, 0, 1} } };
+                               { { 0,-1, 0},
+                                 { 0, 1, 0},
+                                 { 0, 0,-1},
+                                 { 0, 0, 1} } };
 
 
 double center[3] = {0.0, 0.0, 0.0},
@@ -66,6 +66,9 @@ void render();
 void redraw();
 void erase();
 
+void save();
+void load();
+
 void mainloop()
 {
     erase();
@@ -77,62 +80,44 @@ void mainloop()
 
     for (int key; key = getchar(), key != 'Q' && key != 'q'; )
     {
-        if (view == _3D)
+        switch (key)
         {
-            switch (key) {
-            case 'V': case 'v':
-                view = (view + 1) % 4;
-                break;
-            case 'S': case 's':
-                zang -= 0.1;
-                break;
-            case 'F': case 'f':
-                zang += 0.1;
-                break;
-            case 'D': case 'd':
-                xang -= 0.1;
-                break;
-            case 'E': case 'e':
-                xang += 0.1;
-                break;
-            case '-': case '_':
-                far += 10.0;
-                break;
-            case '=': case '+':
-                far -= 10.0;
-                break;
+        case 'V': case 'v': view = (view + 1) % 4; break;
+
+        case 'W': case 'w': if (adding == 2) save(); break;
+        case 'R': case 'r': if (adding == 2) load(); break;
+
+        case '-': case '_': far += 10.0; break;
+        case '=': case '+': far -= 10.0; break;
+
+        default: if (view == _3D)
+        {
+            switch (key)
+            {
+            case 'S': case 's': zang -= 0.1; break;
+            case 'F': case 'f': zang += 0.1; break;
+            case 'D': case 'd': xang -= 0.1; break;
+            case 'E': case 'e': xang += 0.1; break;
             }
         }
         else
         {
-            switch (key) {
-            case 'V': case 'v':
-                view = (view + 1) % 4;
-                break;
-            case 'S': case 's':
-                COMBINE3(center, -=, shift[view][LEFT]);
-                break;
-            case 'F': case 'f':
-                COMBINE3(center, -=, shift[view][RIGHT]);
-                break;
-            case 'D': case 'd':
-                COMBINE3(center, -=, shift[view][DOWN]);
-                break;
-            case 'E': case 'e':
-                COMBINE3(center, -=, shift[view][UP]);
-                break;
+            switch (key)
+            {
+            case 'S': case 's': COMBINE3(center, -=, move[view][Lf]); break;
+            case 'F': case 'f': COMBINE3(center, -=, move[view][Ri]); break;
+            case 'D': case 'd': COMBINE3(center, -=, move[view][Dn]); break;
+            case 'E': case 'e': COMBINE3(center, -=, move[view][Up]); break;
+
             case 'J': case 'j': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, shift[view][LEFT]);
-                break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Lf]); break;
             case 'L': case 'l': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, shift[view][RIGHT]);
-                break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Ri]); break;
             case 'K': case 'k': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, shift[view][DOWN]);
-                break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Dn]); break;
             case 'I': case 'i': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, shift[view][UP]);
-                break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Up]); break;
+
             case ' ':
                 adding = (adding + 1) % 3;
                 switch (adding) {
@@ -152,13 +137,8 @@ void mainloop()
                     break;
                 }
                 break;
-            case '-': case '_':
-                far += 10.0;
-                break;
-            case '=': case '+':
-                far -= 10.0;
-                break;
             }
+        }
         }
         render();
         redraw();
@@ -276,6 +256,44 @@ void erase()
 {
     memset(screen, ' ', widhei);
     for (int y = 1; y <= hei; ++y) screen[y*wid-1] = '\n';
+}
+
+void save()
+{
+    FILE *file;
+    char path[0x100];
+
+    tmode_switch();
+    printf("filename: ");
+    scanf("%s", path);
+    tmode_switch();
+
+    file = fopen(path, "w");
+    fwrite(&EdgesCount(edges), sizeof(uint32_t), 1, file);
+    fwrite(edges, sizeof(*edges), EdgesCount(edges), file);
+    fclose(file);
+}
+
+void load()
+{
+    FILE *file;
+    char path[0x100];
+    uint32_t count;
+
+    tmode_switch();
+    printf("filename: ");
+    scanf("%s", path);
+    tmode_switch();
+
+    file = fopen(path, "r");
+    fread(&count, sizeof(uint32_t), 1, file);
+    EdgesFree(edges);
+    edges = EdgesAlloc;
+    edges = EdgesRealloc(edges, (count+SZREALLOC-1)/SZREALLOC*SZREALLOC
+                                * sizeof(*edges));
+    fread(edges, sizeof(*edges), count, file);
+    EdgesCount(edges) = count;
+    fclose(file);
 }
 
 void tmode_switch()

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 enum { TOP, FRONT, SIDE, _3D };
-enum { LEFT, RIGHT, DOWN, UP };
+enum { Lf, Ri, Dn, Up };
 enum { X, Y, Z };
 enum { A, B };
 
@@ -30,20 +30,20 @@ typedef double (*Edges)[2][3];
 #define EdgesAlloc \
     ((Edges )((uint32_t *)calloc(1, sizeof(uint32_t)) + 1))
 
-#define EdgesRealloc(edges,sz) \
-    ((Edges )((uint32_t *)realloc(&EdgesCount(edges), sz) + 1))
+#define EdgesRealloc(edges, sz) \
+    ((Edges )((uint32_t *)realloc(&EdgesCount(edges), sizeof(uint32_t)+sz) +1))
 
 #define EdgesFree(edges) \
     (free(&EdgesCount(edges)))
 
-#define EdgesAdd(edges, edge) {                                             \
-    if (EdgesCount(edges) % SZREALLOC == 0) {                               \
-        size_t _sz = sizeof(uint32_t) + SZREALLOC*sizeof(*(Edges )NULL);    \
-        edges = EdgesRealloc(edges, _sz);                                   \
-    }                                                                       \
-    COMBINE3(edges[EdgesCount(edges)][A], =, edge[A]);                      \
-    COMBINE3(edges[EdgesCount(edges)][B], =, edge[B]);                      \
-    ++EdgesCount(edges);                                                    \
+#define EdgesAdd(edges, edge) {                         \
+    if (EdgesCount(edges) % SZREALLOC == 0) {           \
+        size_t _sz = SZREALLOC*sizeof(*(Edges )NULL);   \
+        edges = EdgesRealloc(edges, _sz);               \
+    }                                                   \
+    COMBINE3(edges[EdgesCount(edges)][A], =, edge[A]);  \
+    COMBINE3(edges[EdgesCount(edges)][B], =, edge[B]);  \
+    ++EdgesCount(edges);                                \
 }
 
 #define VECMAT3(dst, src)       \
