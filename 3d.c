@@ -250,7 +250,7 @@ void render()
         }
         else if (edge[A][Z] >= 10.0 && edge[B][Z] >= 10.0)
         {
-            double len = fmax(fabs(edge[A][X]-edge[B][X]),
+            double len = fmax(fabs(edge[A][X]-edge[B][X])*2,
                               fabs(edge[A][Y]-edge[B][Y]));
 
             for (double l = 0; l <= len; l += 1.0)
