@@ -211,8 +211,8 @@ void render()
             edge[j][Z] += far;
             if (edge[j][Z] < 10.0) continue;
 
-            edge[j][X] = edge[j][X]*100.0/edge[j][Z];
-            edge[j][Y] = edge[j][Y]*100.0/edge[j][Z];
+            edge[j][X] = edge[j][X]*wid/edge[j][Z];
+            edge[j][Y] = edge[j][Y]*wid/edge[j][Z];
         }
 
         if (adding != 2 && &edges[i] == &EdgesLast(edges))
