@@ -10,7 +10,6 @@ char *screen;
 int wid, hei, widhei;
 
 void tmode_switch();
-
 void mainloop();
 
 int main(int argc, char **argv)
@@ -40,13 +39,13 @@ const double move[4][4][3] = { { {-1, 0, 0},
 
                                { {-1, 0, 0},
                                  { 1, 0, 0},
-                                 { 0, 0,-1},
-                                 { 0, 0, 1} },
+                                 { 0, 0, 1},
+                                 { 0, 0,-1} },
 
                                { { 0,-1, 0},
                                  { 0, 1, 0},
-                                 { 0, 0,-1},
-                                 { 0, 0, 1} } };
+                                 { 0, 0, 1},
+                                 { 0, 0,-1} } };
 
 
 double center[3] = {0.0, 0.0, 0.0},
@@ -150,11 +149,11 @@ double transform[3][3][3] = { { { 1, 0, 0},
                                 { 0, 0, 0} },
 
                               { { 1, 0, 0},
-                                { 0, 0, 1},
+                                { 0, 0,-1},
                                 { 0, 0, 0} },
 
                               { { 0, 1, 0},
-                                { 0, 0, 1},
+                                { 0, 0,-1},
                                 { 0, 0, 0} } };
 
 double uniform[3][3] = UNIFORM;
@@ -174,8 +173,8 @@ void render()
                xcos = cos(xang);
 
         rot1[X][X] =  zcos;
-        rot1[X][Y] =  zsin;
-        rot1[Y][X] = -zsin;
+        rot1[X][Y] = -zsin;
+        rot1[Y][X] =  zsin;
         rot1[Y][Y] =  zcos;
 
         rot2[Y][Y] =  xcos;
