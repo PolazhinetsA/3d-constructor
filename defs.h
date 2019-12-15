@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-enum { TOP, FRONT, SIDE, _3D };
-enum { Lf, Ri, Dn, Up };
+enum { PRIM, SECOND, NSCR };
+enum { TOP, FRONT, SIDE, _3D, NVIEW };
+enum { LF, RI, DN, UP };
 enum { X, Y, Z };
 enum { A, B };
 

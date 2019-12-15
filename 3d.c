@@ -6,7 +6,8 @@
 #include <unistd.h>
 #include "defs.h"
 
-char *screen;
+FILE *scrdst[NSCR];
+char *scrbuf[NSCR];
 int wid, hei, widhei;
 
 void tmode_switch();
@@ -14,16 +15,22 @@ void mainloop();
 
 int main(int argc, char **argv)
 {
-    if (argc == 3) {
+    if (argc >= 3) {
         wid = atoi(argv[1]);
         hei = atoi(argv[2]);
     } else {
         wid = 80;
         hei = 40;
     }
-
     widhei = wid*hei;
-    screen = malloc(widhei);
+
+    scrdst[PRIM] = stdout;
+    scrbuf[PRIM] = malloc(widhei);
+
+    if (argc >= 4) {
+        scrdst[SECOND] = fopen(argv[3], "w");
+        scrbuf[SECOND] = malloc(widhei);
+    }
 
     tmode_switch();
     mainloop();
@@ -32,20 +39,20 @@ int main(int argc, char **argv)
     return 0;
 }
 
-const double move[4][4][3] = { { {-1, 0, 0},
-                                 { 1, 0, 0},
-                                 { 0,-1, 0},
-                                 { 0, 1, 0} },
+const double move[][4][3] = { { {-1, 0, 0},
+                                { 1, 0, 0},
+                                { 0,-1, 0},
+                                { 0, 1, 0} },
 
-                               { {-1, 0, 0},
-                                 { 1, 0, 0},
-                                 { 0, 0, 1},
-                                 { 0, 0,-1} },
+                              { {-1, 0, 0},
+                                { 1, 0, 0},
+                                { 0, 0, 1},
+                                { 0, 0,-1} },
 
-                               { { 0,-1, 0},
-                                 { 0, 1, 0},
-                                 { 0, 0, 1},
-                                 { 0, 0,-1} } };
+                              { { 0,-1, 0},
+                                { 0, 1, 0},
+                                { 0, 0, 1},
+                                { 0, 0,-1} } };
 
 
 double center[3] = {0.0, 0.0, 0.0},
@@ -61,17 +68,19 @@ Edges edges;
 
 int adding = 2;
 
-void render();
-void redraw();
-void erase();
+void render(int);
+void redraw(int);
+void erase(int);
 
 void save();
 void load();
 
 void mainloop()
 {
-    erase();
-    redraw();
+    erase(PRIM);
+    redraw(PRIM);
+    erase(SECOND);
+    redraw(SECOND);
 
     edges = EdgesAlloc;
 
@@ -81,7 +90,7 @@ void mainloop()
     {
         switch (key)
         {
-        case 'V': case 'v': view = (view + 1) % 4; break;
+        case 'V': case 'v': view = (view + 1) % NVIEW; break;
 
         case '-': case '_': far += 10.0; break;
         case '=': case '+': far -= 10.0; break;
@@ -103,19 +112,19 @@ void mainloop()
         {
             switch (key)
             {
-            case 'S': case 's': COMBINE3(center, -=, move[view][Lf]); break;
-            case 'F': case 'f': COMBINE3(center, -=, move[view][Ri]); break;
-            case 'D': case 'd': COMBINE3(center, -=, move[view][Dn]); break;
-            case 'E': case 'e': COMBINE3(center, -=, move[view][Up]); break;
+            case 'S': case 's': COMBINE3(center, -=, move[view][LF]); break;
+            case 'F': case 'f': COMBINE3(center, -=, move[view][RI]); break;
+            case 'D': case 'd': COMBINE3(center, -=, move[view][DN]); break;
+            case 'E': case 'e': COMBINE3(center, -=, move[view][UP]); break;
 
             case 'J': case 'j': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Lf]); break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][LF]); break;
             case 'L': case 'l': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Ri]); break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][RI]); break;
             case 'K': case 'k': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Dn]); break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][DN]); break;
             case 'I': case 'i': if (adding != 2)
-                COMBINE3(EdgesLast(edges)[adding], +=, move[view][Up]); break;
+                COMBINE3(EdgesLast(edges)[adding], +=, move[view][UP]); break;
 
             case ' ':
                 adding = (adding + 1) % 3;
@@ -139,8 +148,12 @@ void mainloop()
             }
         }
         }
-        render();
-        redraw();
+        render(PRIM);
+        redraw(PRIM);
+        if (view == _3D) {
+            render(SECOND);
+            redraw(SECOND);
+        }
     }
 }
 
@@ -158,8 +171,10 @@ double transform[3][3][3] = { { { 1, 0, 0},
 
 double uniform[3][3] = UNIFORM;
 
-void render()
+void render(int scrno)
 {
+    if (!scrdst[scrno]) return;
+
     double rot1[3][3] = UNIFORM,
            rot2[3][3] = UNIFORM,
            (*mat1)[3],
@@ -167,8 +182,8 @@ void render()
 
     if (view == _3D)
     {
-        double zsin = sin(zang),
-               zcos = cos(zang),
+        double zsin = sin(zang + 0.1*scrno),
+               zcos = cos(zang + 0.1*scrno),
                xsin = sin(xang),
                xcos = cos(xang);
 
@@ -191,9 +206,9 @@ void render()
         mat2 = uniform;
     }
 
-    erase();
+    erase(scrno);
 
-    char (*scr)[wid] = (char (*)[wid])screen;
+    char (*scr)[wid] = (char (*)[wid])scrbuf[scrno];
 
     for (int i = 0; i < EdgesCount(edges); ++i)
     {
@@ -245,16 +260,21 @@ void render()
     }
 }
 
-void redraw()
+void erase(int scrno)
 {
-    fwrite(screen, 1, widhei, stdout);
-    printf("%-5s \n\e[%dA", strview[view], hei+1);
+    if (!scrdst[scrno]) return;
+
+    memset(scrbuf[scrno], ' ', widhei);
+    for (int y = 1; y <= hei; ++y) scrbuf[scrno][y*wid-1] = '\n';
 }
 
-void erase()
+void redraw(int scrno)
 {
-    memset(screen, ' ', widhei);
-    for (int y = 1; y <= hei; ++y) screen[y*wid-1] = '\n';
+    if (!scrdst[scrno]) return;
+
+    fwrite(scrbuf[scrno], 1, widhei, scrdst[scrno]);
+    fprintf(scrdst[scrno], "%-5s \n\e[%dA", strview[view], hei+1);
+    fflush(scrdst[scrno]);
 }
 
 void save()
