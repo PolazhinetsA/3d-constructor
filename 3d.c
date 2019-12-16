@@ -169,21 +169,21 @@ double transform[3][3][3] = { { { 1, 0, 0},
                                 { 0, 0,-1},
                                 { 0, 0, 0} } };
 
-double uniform[3][3] = UNIFORM;
-
 void render(int scrno)
 {
     if (!scrdst[scrno]) return;
 
     double rot1[3][3] = UNIFORM,
            rot2[3][3] = UNIFORM,
+           rot3[3][3] = UNIFORM,
            (*mat1)[3],
-           (*mat2)[3];
+           (*mat2)[3],
+           (*mat3)[3];
 
     if (view == _3D)
     {
-        double zsin = sin(zang + 0.1*scrno),
-               zcos = cos(zang + 0.1*scrno),
+        double zsin = sin(zang),
+               zcos = cos(zang),
                xsin = sin(xang),
                xcos = cos(xang);
 
@@ -197,14 +197,22 @@ void render(int scrno)
         rot2[Z][Y] =  xsin;
         rot2[Z][Z] =  xcos;
 
+        if (scrno == SECOND) {
+            double ysin = sin(0.1),
+                   ycos = cos(0.1);
+
+            rot3[X][X] =  ycos;
+            rot3[X][Z] = -ysin;
+            rot3[Z][X] =  ysin;
+            rot3[Z][Z] =  ycos;
+        }
+
         mat1 = rot1;
-        mat2 = rot2;
     }
-    else
-    {
-        mat1 = transform[view];
-        mat2 = uniform;
-    }
+    else mat1 = transform[view];
+
+    mat2 = rot2;
+    mat3 = rot3;
 
     erase(scrno);
 
@@ -221,6 +229,7 @@ void render(int scrno)
 
             VECMAT3(edge[j], mat1);
             VECMAT3(edge[j], mat2);
+            VECMAT3(edge[j], mat3);
 
             edge[j][Z] += far;
             if (edge[j][Z] < 10.0) continue;
