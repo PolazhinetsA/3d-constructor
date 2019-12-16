@@ -34,4 +34,4 @@ COMMON CONTROLS:
 
 STEREO MODE:
 
-If path to secondary terminal device is specified, 3D-view frames with slightly different rotation will be output there. Second window is to be positioned to the right of the primary one and both are to be watched simultaneosly with crossed eyes. Looks well, when vertical viewing angle is horizontal. Shall fix soon...
+If path to secondary terminal device is specified, 3D-view frames with slightly different rotation will be output there. Second window is to be positioned to the right of the primary one and both are to be watched simultaneosly with crossed eyes.
