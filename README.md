@@ -6,7 +6,7 @@ COMPILE:
 
 RUN:
 
-`$ ./3d [<width> <height> [<pts-path>]]`
+`$ ./3d [<width> <height> [<num-frames>]]`
 
 COMMON CONTROLS:
 
@@ -32,6 +32,6 @@ COMMON CONTROLS:
 
 `S`,`F`,`D`,`E` - rotate cw-around-z/ccw-around-z/cw-around-x/ccw-around-x
 
-STEREO MODE:
+STEREOSCOPY:
 
-If path to secondary terminal device is specified, 3D-view frames with slightly different rotation will be output there. Second window is to be positioned to the right of the primary one and both are to be watched simultaneosly with crossed eyes.
+If number of frames specified, several narrow frames are rendered in 3d mode, each rotated by 0.1 more radians around current vertical for watching with crossed eyes.
