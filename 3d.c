@@ -6,9 +6,10 @@
 #include <unistd.h>
 #include "defs.h"
 
-FILE *scrdst[NSCR];
-char *scrbuf[NSCR];
-int wid, hei, widhei;
+char *screen;
+int width = 80,
+    height = 40,
+    nframes = 1;
 
 void tmode_switch();
 void mainloop();
@@ -16,21 +17,11 @@ void mainloop();
 int main(int argc, char **argv)
 {
     if (argc >= 3) {
-        wid = atoi(argv[1]);
-        hei = atoi(argv[2]);
-    } else {
-        wid = 80;
-        hei = 40;
+        width = atoi(argv[1]);
+        height = atoi(argv[2]);
+        if (argv[3]) nframes = atoi(argv[3]);
     }
-    widhei = wid*hei;
-
-    scrdst[PRIM] = stdout;
-    scrbuf[PRIM] = malloc(widhei);
-
-    if (argc >= 4) {
-        scrdst[SECOND] = fopen(argv[3], "w");
-        scrbuf[SECOND] = malloc(widhei);
-    }
+    screen = malloc(width*height);
 
     tmode_switch();
     mainloop();
@@ -68,19 +59,17 @@ Edges edges;
 
 int adding = 2;
 
-void render(int);
-void redraw(int);
-void erase(int);
+void render();
+void redraw();
+void erase();
 
 void save();
 void load();
 
 void mainloop()
 {
-    erase(PRIM);
-    redraw(PRIM);
-    erase(SECOND);
-    redraw(SECOND);
+    erase();
+    redraw();
 
     edges = EdgesAlloc;
 
@@ -148,12 +137,8 @@ void mainloop()
             }
         }
         }
-        render(PRIM);
-        redraw(PRIM);
-        if (view == _3D) {
-            render(SECOND);
-            redraw(SECOND);
-        }
+        render();
+        redraw();
     }
 }
 
@@ -169,10 +154,8 @@ double transform[3][3][3] = { { { 1, 0, 0},
                                 { 0, 0,-1},
                                 { 0, 0, 0} } };
 
-void render(int scrno)
+void render()
 {
-    if (!scrdst[scrno]) return;
-
     double rot1[3][3] = UNIFORM,
            rot2[3][3] = UNIFORM,
            rot3[3][3] = UNIFORM,
@@ -185,7 +168,9 @@ void render(int scrno)
         double zsin = sin(zang),
                zcos = cos(zang),
                xsin = sin(xang),
-               xcos = cos(xang);
+               xcos = cos(xang),
+               ysin = sin(0.1),
+               ycos = cos(0.1);
 
         rot1[X][X] =  zcos;
         rot1[X][Y] = -zsin;
@@ -197,15 +182,10 @@ void render(int scrno)
         rot2[Z][Y] =  xsin;
         rot2[Z][Z] =  xcos;
 
-        if (scrno == SECOND) {
-            double ysin = sin(0.1),
-                   ycos = cos(0.1);
-
-            rot3[X][X] =  ycos;
-            rot3[X][Z] = -ysin;
-            rot3[Z][X] =  ysin;
-            rot3[Z][Z] =  ycos;
-        }
+        rot3[X][X] =  ycos;
+        rot3[X][Z] = -ysin;
+        rot3[Z][X] =  ysin;
+        rot3[Z][Z] =  ycos;
 
         mat1 = rot1;
     }
@@ -214,10 +194,15 @@ void render(int scrno)
     mat2 = rot2;
     mat3 = rot3;
 
-    erase(scrno);
+    erase();
 
-    char (*scr)[wid] = (char (*)[wid])scrbuf[scrno];
+    char (*scr)[width] = (char (*)[width])screen;
 
+    int nfram = view==_3D ? nframes : 1,
+        wid = width/nfram,
+        hei = height;
+
+    for (int frame = 0; frame < nfram; ++frame)
     for (int i = 0; i < EdgesCount(edges); ++i)
     {
         double edge[2][3];
@@ -229,13 +214,15 @@ void render(int scrno)
 
             VECMAT3(edge[j], mat1);
             VECMAT3(edge[j], mat2);
-            VECMAT3(edge[j], mat3);
+
+            for (int k = frame; k--; )
+                VECMAT3(edge[j], mat3);
 
             edge[j][Z] += far;
             if (edge[j][Z] < 10.0) continue;
 
-            edge[j][X] = edge[j][X]*wid/edge[j][Z];
-            edge[j][Y] = edge[j][Y]*wid/edge[j][Z];
+            edge[j][X] = edge[j][X]*width/edge[j][Z];
+            edge[j][Y] = edge[j][Y]*width/edge[j][Z];
         }
 
         if (adding != 2 && &edges[i] == &EdgesLast(edges))
@@ -244,10 +231,10 @@ void render(int scrno)
             {
                 if (edge[j][Z] < 10.0) continue;
 
-                int col = wid/2 + edge[j][X]*2,
-                    row = hei/2 - edge[j][Y];
+                int col = width/2 + edge[j][X]*2,
+                    row = height/2 - edge[j][Y];
 
-                if (0 <= col && col < wid-1 && 0 <= row && row < hei)
+                if (0 <= col && col < width-1 && 0 <= row && row < height)
                     scr[row][col] = 'A'+j;
             }
         }
@@ -263,27 +250,22 @@ void render(int scrno)
                 row = hei/2 - (edge[A][Y] + (edge[B][Y]-edge[A][Y])*l/len);
 
                 if (0 <= col && col < wid-1 && 0 <= row && row < hei)
-                    scr[row][col] = '#';
+                    scr[row][frame*wid+col] = '#';
             }
         }
     }
 }
 
-void erase(int scrno)
+void erase()
 {
-    if (!scrdst[scrno]) return;
-
-    memset(scrbuf[scrno], ' ', widhei);
-    for (int y = 1; y <= hei; ++y) scrbuf[scrno][y*wid-1] = '\n';
+    memset(screen, ' ', width*height);
+    for (int y = 1; y <= height; ++y) screen[y*width-1] = '\n';
 }
 
-void redraw(int scrno)
+void redraw()
 {
-    if (!scrdst[scrno]) return;
-
-    fwrite(scrbuf[scrno], 1, widhei, scrdst[scrno]);
-    fprintf(scrdst[scrno], "%-5s \n\e[%dA", strview[view], hei+1);
-    fflush(scrdst[scrno]);
+    fwrite(screen, 1, width*height, stdout);
+    fprintf(stdout, "%-5s \n\e[%dA", strview[view], height+1);
 }
 
 void save()

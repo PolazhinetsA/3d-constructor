@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-enum { PRIM, SECOND, NSCR };
 enum { TOP, FRONT, SIDE, _3D, NVIEW };
 enum { LF, RI, DN, UP };
 enum { X, Y, Z };
