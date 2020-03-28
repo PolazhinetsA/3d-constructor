@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include <termios.h>
 #include <unistd.h>
@@ -48,6 +49,7 @@ const double move[][4][3] = { { {-1, 0, 0},
 
 double center[3] = {0.0, 0.0, 0.0},
        far = 100.0,
+       zoom = 1.0,
        zang = 0.0,
        xang = 0.0;
 
@@ -65,6 +67,7 @@ void erase();
 
 void save();
 void load();
+void drawtext();
 
 void mainloop()
 {
@@ -81,11 +84,12 @@ void mainloop()
         {
         case 'V': case 'v': view = (view + 1) % NVIEW; break;
 
-        case '-': case '_': far += 10.0; break;
-        case '=': case '+': far -= 10.0; break;
+        case '-': case '_': zoom -= 0.125; break;
+        case '=': case '+': zoom += 0.125; break;
 
         case 'W': case 'w': if (adding == 2) save(); break;
         case 'R': case 'r': if (adding == 2) load(); break;
+        case 'T': case 't': if (adding == 2) drawtext(); break;
 
         default: if (view == _3D)
         {
@@ -95,6 +99,8 @@ void mainloop()
             case 'F': case 'f': zang += 0.1; break;
             case 'D': case 'd': xang -= 0.1; break;
             case 'E': case 'e': xang += 0.1; break;
+            case 'K': case 'k': far -= 10.0; break;
+            case 'I': case 'i': far += 10.0; break;
             }
         }
         else
@@ -202,6 +208,8 @@ void render()
         wid = width/nfram,
         hei = height;
 
+    double closest[3] = {0, 0, 1000000};
+
     for (int frame = 0; frame < nfram; ++frame)
     for (int i = 0; i < EdgesCount(edges); ++i)
     {
@@ -215,14 +223,22 @@ void render()
             VECMAT3(edge[j], mat1);
             VECMAT3(edge[j], mat2);
 
-            for (int k = frame; k--; )
+            for (int k = frame; k--; ) {
+                COMBINE3(edge[j], -=, closest);
                 VECMAT3(edge[j], mat3);
+                COMBINE3(edge[j], +=, closest);
+            }
 
             edge[j][Z] += far;
             if (edge[j][Z] < 10.0) continue;
 
-            edge[j][X] = edge[j][X]*width/edge[j][Z];
-            edge[j][Y] = edge[j][Y]*width/edge[j][Z];
+            if (frame == 0 && edge[j][Z] < closest[Z]) {
+                COMBINE3(closest, =, edge[j]);
+                closest[Z] -= far;
+            }
+
+            edge[j][X] = edge[j][X]*width*zoom/edge[j][Z];
+            edge[j][Y] = edge[j][Y]*width*zoom/edge[j][Z];
         }
 
         if (adding != 2 && &edges[i] == &EdgesLast(edges))
@@ -299,11 +315,107 @@ void load()
     fread(&count, sizeof(uint32_t), 1, file);
     EdgesFree(edges);
     edges = EdgesAlloc;
-    edges = EdgesRealloc(edges, (count+SZREALLOC-1)/SZREALLOC*SZREALLOC
-                                * sizeof(*edges));
+    edges = EdgesRealloc(edges, (count+(-count%SZREALLOC)) * sizeof(*edges));
     fread(edges, sizeof(*edges), count, file);
     EdgesCount(edges) = count;
     fclose(file);
+}
+
+typedef double (*font_t)[26][2][2];
+
+font_t compilefont(FILE *);
+void emplacefonts(font_t, char *);
+
+void drawtext()
+{
+    FILE *fontfile;
+    char fontpath[0x100];
+    char text[0x100];
+    font_t font;
+
+    tmode_switch();
+    printf("text: ");
+    scanf("%s", text);
+    printf("fontfile: ");
+    scanf("%s", fontpath);
+    tmode_switch();
+
+    fontfile = fopen(fontpath, "r");
+    font = compilefont(fontfile);
+    fclose(fontfile);
+
+    emplacefonts(font, text);
+
+    free(font);
+}
+
+font_t compilefont(FILE *file)
+{
+    font_t font = calloc(0x100, sizeof(*(font_t )NULL));
+
+    char buf[0x100], ch = 0;
+    for (int i = 0; fgets(buf, sizeof(buf), file); ++i) {
+        if (buf[0] == '#') {
+            ch = buf[1];
+            i = -1;
+            continue;
+        }
+        for (int j = 0, edgeno, end; buf[j] != '\n' && buf[j] != '\0'; ++j) {
+            if (isupper(buf[j])) edgeno = buf[j]-'A', end = A;
+            else if (islower(buf[j])) edgeno = buf[j]-'a', end = B;
+            else continue;
+
+            font[ch][edgeno][end][X] = 10.0 * (j/2);
+            font[ch][edgeno][end][Y] = 10.0 * i;
+        }
+    }
+
+    return font;
+}
+
+void emplacefonts(font_t font, char *text)
+{
+    double x_ = 0;
+    for (int ch = *text; ch != '\0'; ch = *++text) {
+        double _x = x_;
+        for (int i = 0; i < 26; ++i) {
+            double ax = x_ + font[ch][i][A][X],
+                   az = -font[ch][i][A][Y],
+                   bx = x_ + font[ch][i][B][X],
+                   bz = -font[ch][i][B][Y];
+
+            if (ax == bx && az == bz) continue;
+
+            double edge[2][3];
+
+            edge[A][X] = ax;
+            edge[A][Y] = 0;
+            edge[A][Z] = az;
+            edge[B][X] = bx;
+            edge[B][Y] = 0;
+            edge[B][Z] = bz;
+            EdgesAdd(edges, edge);
+
+            edge[A][Y] = 20;
+            edge[B][Y] = 20;
+            EdgesAdd(edges, edge);
+
+            edge[A][Y] = 0;
+            edge[B][X] = ax;
+            edge[B][Z] = az;
+            EdgesAdd(edges, edge);
+
+            edge[A][X] = bx;
+            edge[A][Z] = bz;
+            edge[B][X] = bx;
+            edge[B][Z] = bz;
+            EdgesAdd(edges, edge);
+
+            if (_x < ax) _x = ax;
+            if (_x < bx) _x = bx;
+        }
+        x_ = _x + 15;
+    }
 }
 
 void tmode_switch()
