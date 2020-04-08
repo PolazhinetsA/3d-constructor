@@ -38,7 +38,7 @@ COMMON CONTROLS:
 
 TEXT RENDERING:
 
-You'll be prompted to enter a word and the vector font file name. The latter is of human readable format. "megafont" is an example with only 'A' and '0' defined. A pair of alphabetically equal letters, one uppercase and one lowercase, corresponds to a particular edge. Note that, unlike rows, only odd cols are significant in terms of resulting X-position of the vertex, so you can have two edges with common vertex by putting the vertex of the second one right next to that of the first one in file, i.e. at even column. Letters not defined in current font will occupy zero space in the result.
+You'll be prompted to enter a word and the vector font file name. The latter is of human readable format. "megafont" is an example with only 'A' and '0' defined. A pair of alphabetically equal letters, one uppercase and one lowercase, corresponds to an edge. Note that, unlike rows, only odd cols affect resulting X-position of the vertex, so you can have two edges with common vertex by putting a vertex of the second one right next to that of the first one in file, i.e. at even column. Letters not defined in current font will occupy zero space in the result.
 
 STEREOSCOPY:
 
